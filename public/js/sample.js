@@ -5,7 +5,7 @@ x.addEventListener("input", function() {
   var resultElement = document.getElementById("demo2");
 
   axios
-    .get("/players/find/" + x.value)
+    .get("/api/players/find/" + x.value)
     .then(function(response) {
       let len = response.data.length;
       if (len == 0) {
