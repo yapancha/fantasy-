@@ -22,9 +22,7 @@ let players = JSON.parse(rawdata);
 // cricapi.matches(function(databundle) {
 //   console.log("matches", databundle);
 // });
-// info for mysql connection
 
-// connect to mysql
 
 app.use(bodyParser.json());
 app.use(

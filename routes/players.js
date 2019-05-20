@@ -12,7 +12,6 @@ router.get("/", (req, res) => {
 //add players
 //+++++++++++++
 router.get("/add", function(req, res) {
-    console.log("GET login user");
 
     players.forEach(function(player) {
         connection.execute(
@@ -23,25 +22,69 @@ router.get("/add", function(req, res) {
             }
         );
     });
-
     res.send("done");
 });
 //=============
 //add stats
 //+++++++++++++
 router.get("/stats", function(req, res) {
-    db.execute("SELECT `player_id` FROM `players`", function(error, results, fields) {
+    db.execute("SELECT `player_id` FROM `players`", async function(error, results, fields) {
         if (error) throw error;
-        results.forEach(function(player) {
+        await results.forEach(function(player) {
             var url = "http://cricapi.com/api/playerStats?pid=" + player.player_id + "&apikey=" + apiKey;
-            request(url, function(error, response, body) {
+             request(url, async function(error, response, body) {
+                var rawData = JSON.parse(body);
+
                 if (error) throw error;
-                var playerInfo = JSON.parse(body);
-                console.log("body:", playerInfo.fullName); // Print the HTML for the Google homepage.
-            });
+
+                if(rawData.data.batting.ODIs == undefined || rawData.data.batting.ODIs == undefined){
+                    var runs = 0;
+                    var wickets = 0;
+                    var catches = 0;
+                    var stumpings = 0;
+                    var centuries = 0;
+                    var fivefers = 0;
+                }
+                else{
+                    var runs = rawData.data.batting.ODIs.Runs || 0;
+                    var wickets = rawData.data.bowling.ODIs.Wkts|| 0;
+                    var catches = rawData.data.batting.ODIs.Ct|| 0;
+                    var stumpings = rawData.data.batting.ODIs.St || 0;
+                    var centuries = rawData.data.batting.ODIs["100"] || 0;
+                    var fivefers = rawData.data.bowling.ODIs["5w"] || 0;
+                }   
+                var playerInfo = {
+                    pid : rawData.pid,
+                    runs: runs,
+                    wickets : wickets,
+                    catches : catches,
+                    runouts : 0,
+                    stumpings : stumpings,
+                    centuries : centuries,
+                    fivefers : fivefers,
+                    ducks : 0,
+                    mom : 0,
+                    double : 0,
+                    hattrick : 0 ,
+                    points : 0 
+                }
+
+                db.execute(
+                    "INSERT INTO `stats`(`player_id`, `runs`, `wickets`, `catches`, `run_outs`, `stumpings`, `centuries`,"+
+                     "`fivefers`, `ducks`, `mom`, `double_century`, `hattrick`, `points`) VALUES"
+                    + "(?,?,?,?,?,?,?,?,?,?,?,?,?)",
+                    [playerInfo.pid, playerInfo.runs, playerInfo.wickets, playerInfo.catches, playerInfo.runouts,
+                        playerInfo.stumpings, playerInfo.centuries, playerInfo.fivefers,
+                            playerInfo.ducks, playerInfo.mom, playerInfo.double, playerInfo.hattrick, playerInfo.points],
+                     function(error, results, fields) {
+                        if (error) throw error;
+                    }
+                );            });
         });
-        res.end();
+
     });
+    res.send("done");
+
 });
 //=============
 //find players
